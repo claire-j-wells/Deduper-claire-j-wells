@@ -17,12 +17,7 @@ import re
 # umi = args.u #biomart file 1 with gene names, protein ID, etc 
 # help = args.h #biomart file 2 with gene names, protein ID, etc 
 
-temp_chr = "" #Assign temporary chromosome
-temp_UMI = "" #Assign temporary UMI
 
-big_umi_set = set(open("STL96.txt", "r").read().split("\n"))
-minus_umi_set = set()
-plus_umi_set = set()
 
 
 def grab_umi(curr_umi) -> str:
@@ -52,27 +47,36 @@ def positive_strand_soft_clipping(cigar_string):
         new_plus_pos = int(position) - letter_dict["S"]
         #print(new_plus_pos)     
     return(positive_strand_soft_clipping)
-           
+
 def minus_strand_soft_clipping(cigar_string):
     matches = re.findall(r'(\d+)([A-Z]{1})', cigar_string)
-    letter_dict = {}
+    letter_dict = {'M':0,
+                   'D':0,
+                   'S':0,
+                   'N':0}
     for num_letter in matches:
-       number = num_letter[0]                   #this is the number you are doing math on
-       adjust_letter = num_letter[1]             
-       letter_dict[adjust_letter] = int(number)
-    print(letter_dict)
-    #    if adjust_letter in letter_dict:
-    #        letter_dict[adjust_letter] += int(number)
-    # #     if adjust_letter == "S":
-    #         letter_dict.update
-        #print(letter_dict)
+        print(num_letter)
+        number = num_letter[0]                   #this is the number you are doing math on
+        adjust_letter = num_letter[1]
+        if adjust_letter == "S":
+            letter_dict[adjust_letter] = int(number)
+        elif adjust_letter in letter_dict:
+            letter_dict[adjust_letter] += int(number)          
+        else:
+            letter_dict[adjust_letter] = int(number)
+        print(letter_dict)
+    new_minus_pos =  int(letter_dict["M"]) + int(letter_dict["D"]) + int(letter_dict["S"]) + int(letter_dict["N"]) + int(position) - 1
+    #print(new_minus_pos)
     return(minus_strand_soft_clipping)
-           
-    
-       # new_minus_pos =  letter_dict["M"] + letter_dict["D"] 
+       
+temp_chr = "" #Assign temporary chromosome
+temp_UMI = "" #Assign temporary UMI
+
+big_umi_set = set(open("STL96.txt", "r").read().split("\n"))
+minus_umi_set = set()
+plus_umi_set = set()
 
 
-    
 with open("small_test.sam", "r") as file: #open(outfile, "w") as outfile: 
     for indiv_line in file:
         if indiv_line.startswith("@"):
@@ -80,17 +84,25 @@ with open("small_test.sam", "r") as file: #open(outfile, "w") as outfile:
             continue
         indiv_line = indiv_line.strip("\n")
         split_list = indiv_line.split("\t")
-        chr = split_list[2]                         #Assign current chromosome
+        print(split_list)
+
+#Assign variables for all the information we need
+        chr = split_list[2]                         
         bitwise_flag = int(split_list[1])
-        curr_umi = grab_umi(split_list[0])           #Grabbing the UMI   
+        curr_umi = grab_umi(split_list[0])             
         positive_strand = strandedness(bitwise_flag)
         position = split_list[3]
         cigar_string = split_list[5]
-        #print(cigar_string)             
+
+
+        if curr_umi not in big_umi_set:
+            continue
+     #print(cigar_string)             
         if chr != temp_chr:                         #If the chromosome doesn't match the last chromosome, reset.
             chr = temp_chr
         if positive_strand is True:
             adjust_pos = positive_strand_soft_clipping(cigar_string)
+
             #soft clipping bullshit#to make pylance not itself
         elif positive_strand is False: #negative strand
             minus_adjust_pos = minus_strand_soft_clipping(cigar_string)
