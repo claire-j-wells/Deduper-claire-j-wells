@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+#FINAL COMMAND USED: 
 #/usr/bin/time -v ./Wells_deduper.py -u STL96.txt -f final_input_sorted.sam -o final_output.sam 
 
-#./Wells_deduper.py -u STL96.txt -f amelia_test_input_sorted.sam -o amelia_test.sam
-
+#IMPORT TOOLS
 import argparse
 import re 
 
@@ -21,6 +21,7 @@ umi = args.u #biomart file 1 with gene names, protein ID, etc
 #help = args.h #biomart file 2 with gene names, protein ID, etc 
 
 
+#FUNCTIONS :) 
 
 def grab_umi(curr_umi) -> str:
     '''This function is meant to grab the UMI from the QNAME '''
@@ -36,6 +37,7 @@ def strandedness(bitwise_flag:int) -> bool:
      return False
 
 def positive_strand_soft_clipping(cigar_string,position):
+    '''This function calculates soft clipping on positive strands'''
     matches = re.findall(r'(\d+)([A-Z]{1})', cigar_string)
     letter_dict = {'S':0}
     num_letter = matches[0]                 #this is the number you are doing math on
@@ -48,6 +50,7 @@ def positive_strand_soft_clipping(cigar_string,position):
     return(new_plus_pos)
 
 def minus_strand_soft_clipping(cigar_string,position):
+    '''This function calculates soft clipping on the minus strand'''
     matches = re.findall(r'(\d+)([A-Z]{1})', cigar_string)
     letter_dict = {'M':0,
                    'D':0,
@@ -65,24 +68,29 @@ def minus_strand_soft_clipping(cigar_string,position):
         first_item = False
     new_minus_pos =  int(letter_dict["M"]) + int(letter_dict["D"]) + int(letter_dict["S"]) + int(letter_dict["N"]) + int(position) - 1
     return(new_minus_pos)
-       
+
+#SET UP TEMP VAR        
 temp_chr = "" #Assign temporary chromosome
 temp_UMI = "" #Assign temporary UMI
 
+#OPEN BIG UMI SET TO COMPARE TO 
 big_umi_set = set(open(umi, "r").read().split("\n"))
 
-#This set contains a tuple of UMI and Adjusted Position 
+#This set contains a tuple of UMI,Adjusted Position 
 minus_umi_set = set()
 plus_umi_set = set()
 
-#UMI counter 
+#ALL THE COUNTERS!
 unknown_UMI = 0
 header_lines = 0
 unique_reads = 0 
 duplicates = 0 
 num_reads_chromo = 0 
+
+#SET CHR EQUAL TO 1 FOR FIRST ITERATION UNDER THE ASSUMPTION OF RECEIVING A SORTED SAM FILE 
 chr = "1"
 
+#START: 
 with open(file, "r") as file: 
     with open(outfile, "wt") as outfile: 
         for indiv_line in file:
@@ -93,7 +101,7 @@ with open(file, "r") as file:
             indiv_line = indiv_line.strip("\n")
             split_list = indiv_line.split("\t")
         
-            #ASSIGN variables for all the information we need
+            #ASSIGN VAR AND GET ALL THE INFORMATION NECESSARY 
             temp_chr = split_list[2]                  
             bitwise_flag = int(split_list[1])
             curr_umi = grab_umi(split_list[0])           
@@ -108,8 +116,12 @@ with open(file, "r") as file:
                 
             if chr != temp_chr:
                 print(f'{chr}\t{num_reads_chromo}')
-                num_reads_chromo = 0    #If the chromosome doesn't match the last chromosome, reset.
+
+                #If the chromosome doesn't match the last chromosome, reset for counting purposes and move to the next chr. 
+                num_reads_chromo = 0    
                 chr = temp_chr
+
+                #CLEAR THE SETS
                 minus_umi_set = set()
                 plus_umi_set = set()
 
