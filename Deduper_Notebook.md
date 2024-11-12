@@ -10,8 +10,6 @@ We need to differentiate PCR duplicates from actual biological duplicates. This 
 Write up a strategy for writing a Reference Based PCR Duplicate Removal tool. That is, given a sam file of uniquely mapped reads, remove all PCR duplicates (retain only a single copy of each read). Develop a strategy that avoids loading everything into memory. You should not write any code for this portion of the assignment. Be sure to:
 
 
-
-
 Write examples:
 Include a properly formated sorted input sam file
 
@@ -131,7 +129,101 @@ NS500451:154:HWKTMBGXX:1:11101:24936:1293:TGAGTGAG	0	2	100	36	4S16M	*	0	0	GTCCGA
 Output: Calculated New Position that has been accounted for soft clipping.
 
 
+Sunday November 11th, 2024: Debugging has me tweaking out on another level 
+---
 
-### Possible Cases: 
+A brief summary of all the bugs that were encountered on this long long long journey:
 
-####
+- Was clearing the set after every iteration instead of appending to the set resulting in keeping all of the reads instead of tossing duplicates 
+
+- Mixed up temp_chr variable with the actual chr variable
+
+- Had some issues with functions, forgot to account for one single case which was looking at soft clipping on the right which resulted in keeping a few hundred thousand reads that necessary. This kind of issue could have been resolved if I had simplified the function more and instead of iterating through the whole string, I instead just isolated the first tuple and stopped and didn't use a for loop. 
+
+Command used to sort Leslie's big test file: 
+
+`samtools sort /projects/bgmp/shared/deduper/C1_SE_uniqAlign.sam -o final_input_sorted.sam`
+
+
+Final Command Used to Run the Script: 
+
+`/usr/bin/time -v ./Wells_deduper.py -u STL96.txt -f final_input_sorted.sam -o final_output.sam `
+
+
+Output:
+
+Ordering was a little bit different due to the sam sort but this is what was copied into Leslie's survey with the technically correct chromosome order. 
+
+
+```
+1       697508
+2       2787018
+3       547615
+4       589839
+5       562160
+6       510818
+7       1113183
+8       576463
+9       627488
+10      564903
+11      1220389
+12      359951
+13      467659
+14      387239
+15      437465
+16      360923
+17      517566
+18      290506
+19      571665
+MT      202002
+X       317853
+Y       2247
+JH584299.1      3
+GL456233.2      656
+GL456211.1      6
+GL456221.1      4
+GL456354.1      1
+GL456210.1      5
+GL456212.1      4
+JH584304.1      294
+GL456379.1      2
+GL456367.1      3
+GL456239.1      1
+GL456383.1      1
+MU069435.1      5450
+GL456389.1      1
+GL456370.1      21
+GL456390.1      1
+GL456382.1      1
+GL456396.1      17
+GL456368.1      3
+MU069434.1      3
+The number of reads kept: 13719048
+The number of duplicates: 4467362
+The number of reads tossed with unknown UMIs: 0
+The number of header lines was: 65
+        Command being timed: "./Wells_deduper.py -u STL96.txt -f final_input_sorted.sam -o final_output.sam"
+        User time (seconds): 71.83
+        System time (seconds): 3.32
+        Percent of CPU this job got: 99%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:15.56
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 557456
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 0
+        Minor (reclaiming a frame) page faults: 193059
+        Voluntary context switches: 1075
+        Involuntary context switches: 96
+        Swaps: 0
+        File system inputs: 0
+        File system outputs: 0
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
+```
