@@ -12,7 +12,6 @@ def get_args():
     parser.add_argument("-f", help="input file")#, required= True)
     parser.add_argument("-o", help="output SAM file")#, required = True)
     parser.add_argument("-u",help = "UMI file")# required= True)
-    #parser.add_argument("-h",help = "Get Some Help!")#, required= False)
     return parser.parse_args()
 
 args = get_args()
@@ -32,7 +31,6 @@ def grab_umi(curr_umi) -> str:
 def strandedness(bitwise_flag:int) -> bool:
      '''This function determines strandedness and returns a bool. 
      If the bool is TRUE, then it is the PLUS strand and FALSE indicates MINUS'''
-     #bitwise_flag = int(bitwise_flag)
      if((bitwise_flag & 16) != 16):
          return True
      return False
@@ -45,13 +43,6 @@ def positive_strand_soft_clipping(cigar_string,position):
     adjust_letter = num_letter[1] 
     if adjust_letter == "S":
         letter_dict[adjust_letter] = int(number) 
-        #print(matches)
-        # number = num_letter[0]                  #this is the number you are doing math on
-        # adjust_letter = num_letter[1]
-        # if adjust_letter == "S":
-        #     letter_dict[adjust_letter] = int(number)       #this is the letter indicator
-        # #if adjust_letter not in letter_dict:
-        #      #continue
     new_plus_pos = int(position) - letter_dict["S"]
     #print(f'the plus pos is:{new_plus_pos}')     
     return(new_plus_pos)
@@ -71,19 +62,14 @@ def minus_strand_soft_clipping(cigar_string,position):
                 letter_dict[adjust_letter] = int(number)
         elif adjust_letter in letter_dict:
             letter_dict[adjust_letter] += int(number)          
-        #else:
-            #letter_dict[adjust_letter] = int(number)
         first_item = False
-        #print(letter_dict)
     new_minus_pos =  int(letter_dict["M"]) + int(letter_dict["D"]) + int(letter_dict["S"]) + int(letter_dict["N"]) + int(position) - 1
-    #print(f'the minus pos is:{new_minus_pos}')
     return(new_minus_pos)
        
 temp_chr = "" #Assign temporary chromosome
 temp_UMI = "" #Assign temporary UMI
 
 big_umi_set = set(open(umi, "r").read().split("\n"))
-#print(big_umi_set)
 
 #This set contains a tuple of UMI and Adjusted Position 
 minus_umi_set = set()
@@ -106,45 +92,32 @@ with open(file, "r") as file:
                 continue
             indiv_line = indiv_line.strip("\n")
             split_list = indiv_line.split("\t")
-            #print(split_list)
+        
             #ASSIGN variables for all the information we need
-            temp_chr = split_list[2] 
-            #print(f"Value of split_list[1]: {split_list[1]}")                        
+            temp_chr = split_list[2]                  
             bitwise_flag = int(split_list[1])
-            #print(f'the bit is: {bitwise_flag}')
-            curr_umi = grab_umi(split_list[0]) 
-            #print(f'the curr umi is: {curr_umi}')          
+            curr_umi = grab_umi(split_list[0])           
             positive_strand = strandedness(bitwise_flag)
-            #print(f'strand is {positive_strand}')
             position = int(split_list[3])
-            #print(f'position is {position}')
             cigar_string = split_list[5]
-            #print(f'the cigar is: {cigar_string}')
 
             if curr_umi not in big_umi_set:
                 unknown_UMI += 1 
                 continue #SKIP! JUMP ONTO NEXT ITERATION
-            #print(cigar_string)
+    
                 
             if chr != temp_chr:
-                #print(chr) 
-                #print(temp_chr)
                 print(f'{chr}\t{num_reads_chromo}')
                 num_reads_chromo = 0    #If the chromosome doesn't match the last chromosome, reset.
                 chr = temp_chr
-                #print(minus_umi_set)
-                #print(temp_chr)
                 minus_umi_set = set()
                 plus_umi_set = set()
-                #print(f'Chromosome {chr}\t{num_reads_chromo}')
 
             if positive_strand:
                 plus_pos = positive_strand_soft_clipping(cigar_string,position)
-                #print(plus_pos)
                 if (plus_pos, curr_umi) not in plus_umi_set:
                     num_reads_chromo += 1 
                     plus_umi_set.add((plus_pos, curr_umi))
-                    #print(plus_umi_set)
                     unique_reads += 1
                     indiv_line = f'{indiv_line}\n'
                     outfile.write(indiv_line)
@@ -153,17 +126,13 @@ with open(file, "r") as file:
                     continue #This means it's a dupe because it's already in the set. 
             else:   # positive_strand is False: #negative strand
                 minus_pos = minus_strand_soft_clipping(cigar_string,position)
-                #print(minus_pos)
                 if (minus_pos, curr_umi) not in minus_umi_set:
-                    #print(indiv_line)
                     num_reads_chromo += 1
                     minus_umi_set.add((minus_pos, curr_umi))
-                    #print(minus_umi_set)
                     unique_reads += 1
                     indiv_line = f'{indiv_line}\n'
                     outfile.write(indiv_line)
                 else:
-                    #print(indiv_line)
                     duplicates += 1
                     continue #it's a dupe just like the last thing. 
 
